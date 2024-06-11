@@ -1,0 +1,64 @@
+package com.example.locationtracker
+
+import android.Manifest
+import android.content.pm.PackageManager
+import android.location.Location
+import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.tasks.Task
+import android.util.Log
+
+class MainActivity : AppCompatActivity() {
+
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private val LOCATION_PERMISSION_REQUEST_CODE = 1
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                LOCATION_PERMISSION_REQUEST_CODE)
+        } else {
+            getLastKnownLocation()
+        }
+    }
+
+    private fun getLastKnownLocation() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+            == PackageManager.PERMISSION_GRANTED) {
+            val locationResult: Task<Location> = fusedLocationClient.lastLocation
+            locationResult.addOnCompleteListener(this) { task ->
+                if (task.isSuccessful) {
+                    val location: Location? = task.result
+                    if (location != null) {
+                        Log.d("MainActivity", "Lat: ${location.latitude}, Lng: ${location.longitude}")
+                    } else {
+                        Log.d("MainActivity", "Location is null")
+                    }
+                } else {
+                    Log.d("MainActivity", "Failed to get location")
+                }
+            }
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        when (requestCode) {
+            LOCATION_PERMISSION_REQUEST_CODE -> {
+                if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
+                    getLastKnownLocation()
+                }
+            }
+        }
+    }
+}
